@@ -38,7 +38,7 @@
   FORMAT(maud)
   FORMAT(nul)
   FORMAT(prc)
-  FORMAT(raw)
+/*  FORMAT(raw) */
   FORMAT(s1)
   FORMAT(s2)
   FORMAT(s3)
