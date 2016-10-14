@@ -37,6 +37,9 @@
   #include <magic.h>
 #endif
 
+#include "fmemopen.h"
+#include "open_memstream.h"
+
 #define PIPE_AUTO_DETECT_SIZE 256 /* Only as much as we can rewind a pipe */
 #define AUTO_DETECT_SIZE 4096     /* For seekable file, so no restriction */
 
