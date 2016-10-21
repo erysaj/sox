@@ -5,10 +5,14 @@
 #include <string.h>
 #include <errno.h>
 
+#define ALLOC_INITIAL_SIZE	(1024 * 1024)
+#define ALLOC_CHUNK_SIZE	(4 * 1024)
+
 struct memstream {
 	char **cp;
 	size_t *lenp;
 	size_t offset;
+	size_t allocated;
 };
 
 static void
@@ -16,16 +20,31 @@ memstream_grow(struct memstream *ms, size_t newsize)
 {
 	char *buf;
 
-	if (newsize > *ms->lenp) {
-		buf = realloc(*ms->cp, newsize + 1);
+	if (newsize >= ms->allocated) {
+		size_t old_allocated = ms->allocated;
+		if (ms->allocated < ALLOC_INITIAL_SIZE) {
+			ms->allocated = ALLOC_INITIAL_SIZE;
+		}
+		while (newsize >= ms->allocated) {
+			ms->allocated += ALLOC_CHUNK_SIZE;
+		}
+		buf = realloc(*ms->cp, ms->allocated);
 		if (buf != NULL) {
 #ifdef DEBUG
-			fprintf(stderr, "MS: %p growing from %zd to %zd\n",
-			    ms, *ms->lenp, newsize);
+			fprintf(stderr, "MS: %p growing from %zd to %zd\n", ms, old_allocated, ms->allocated);
 #endif
-			memset(buf + *ms->lenp + 1, 0, newsize - *ms->lenp);
+			memset(buf + *ms->lenp, 0, ms->allocated - *ms->lenp);
 			*ms->cp = buf;
+		}
+	}
+
+	if (newsize > *ms->lenp) {
+		if (newsize < ms->allocated) {
 			*ms->lenp = newsize;
+		} else if (ms->allocated > 0) {
+			*ms->lenp = ms->allocated - 1;
+		} else {
+			*ms->lenp = 0;
 		}
 	}
 }
@@ -119,6 +138,7 @@ open_memstream(char **cp, size_t *lenp)
 	ms->cp = cp;
 	ms->lenp = lenp;
 	ms->offset = 0;
+	ms->allocated = 0;
 	fp = funopen(ms, memstream_read, memstream_write, memstream_seek,
 	    memstream_close);
 	if (fp == NULL) {
